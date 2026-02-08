@@ -3,11 +3,18 @@
 const API_URL = "https://justanotherpanel.com/api/v2";
 const API_KEY = process.env.JAP_API_KEY;
 
-// simple in-memory cache (works per Vercel instance)
 let cache = {
   time: 0,
   data: null
 };
+
+function cleanText(str = "") {
+  return str
+    .normalize("NFKD")
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+    .replace(/[^\x20-\x7E]/g, "")
+    .trim();
+}
 
 export default async function handler(req, res) {
   const start = Date.now();
@@ -25,7 +32,6 @@ export default async function handler(req, res) {
 
   let services;
 
-  // 🔥 cache for 60 seconds
   if (cache.data && Date.now() - cache.time < 60_000) {
     services = cache.data;
   } else {
@@ -57,13 +63,10 @@ export default async function handler(req, res) {
       (service.name || "")
     ).toLowerCase();
 
-    if (
-      haystack.includes(platform) &&
-      haystack.includes(type)
-    ) {
+    if (haystack.includes(platform) && haystack.includes(type)) {
       result.push({
         service_id: service.service,
-        name: service.name,
+        name: cleanText(service.name), // ✅ CLEAN HERE
         rate: service.rate,
         min: service.min,
         max: service.max,
@@ -77,7 +80,12 @@ export default async function handler(req, res) {
 
   const timeMs = Date.now() - start;
 
+  res.setHeader(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
   res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
+
   return res.status(200).json({
     platform,
     type,
