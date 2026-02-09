@@ -1,6 +1,6 @@
 // api/services.js
 
-const API_URL = "https://justanotherpanel.com/api/v2";
+const API_URL = "https://smmapro.com/api/v2";
 const API_KEY = process.env.JAP_API_KEY;
 
 let cache = {
